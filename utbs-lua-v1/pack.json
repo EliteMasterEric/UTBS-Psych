@@ -1,0 +1,7 @@
+{
+	"name": "UTBS v1",
+	"description": "An Undertale battle system for mods.",
+	"restart": false,
+	"runsGlobally": true,
+	"color": [0, 0, 0]
+}
