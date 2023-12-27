@@ -1,2 +1,0 @@
-open da box
-value 1 - attack
