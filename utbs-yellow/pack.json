@@ -1,0 +1,7 @@
+{
+	"name": "UTBS - Undertale Yellow",
+	"description": "Undertale Yellow mechanics for UTBS.",
+	"restart": false,
+	"runsGlobally": true,
+	"color": [0, 0, 0]
+}

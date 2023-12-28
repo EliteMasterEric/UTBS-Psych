@@ -6,7 +6,6 @@
 -- * Main global script for the Undertale battle system.
 -- * Called in all songs but only spawns the battle system when invoked.
 
--- TODO: Remove.
 luaDebugMode = true
 
 local self = nil -- Assigned at the end.
@@ -26,6 +25,7 @@ local isBoxBuilt = false
 local isBoxOpen = false
 local isBoxOpening = false
 local isBoxClosing = false
+local boxRelativeOpenSpeed = 1.0
 
 -- Current collision bounds of the battle box, relative to the center (0, 0).
 local boxLeftBound = 0.0
@@ -60,12 +60,22 @@ local soulColor = settings.soulColors['red']
 
 local isSoulInvincible = false
 local maySoulMove = true
-local isSoulMoving = true
+local isSoulMoving = false
+local isSoulTouchingTop = false
+local isSoulTouchingBottom = false
+local isSoulTouchingLeft = false
+local isSoulTouchingRight = false
+
+local targetBoxWidth = settings.defaultBoxWidth
+local targetBoxHeight = settings.defaultBoxHeight
 
 local soulXPos = 0.0
 local soulYPos = 0.0
 
 local timesHit = 0
+
+local soulFlashParams = nil
+local soulFlashTimer = 0.0
 
 --
 -- REGISTRIES
@@ -89,16 +99,22 @@ function initializeBattleSystem()
 
     -- Register built-in soul modes.
     registerSoulMode('default', require('mods/utbs-lua-v1/scripts/modes/default'))
-
+    
     -- Set soul mode and color.
     setSoulMode('default')
 end
 
-function openBox()
+function openBox(speed)
     if not isInitialized then
         debugPrint("UTBS: Cannot open battle box because the battle system has not been initialized.")
         return
     end
+
+    if speed == nil then
+        speed = 1.0
+    end
+
+    boxRelativeOpenSpeed = speed
 
     -- Build the box if it hasn't been built yet.
     if not isBoxBuilt then
@@ -108,16 +124,21 @@ function openBox()
 
     -- Open the box if it isn't already open.
     if not isBoxOpen then
-        debugPrint("Opening box...")
+        debugPrint("Opening box with speed " .. speed .. "...");
         isBoxOpening = true
         isBoxClosing = false
 
+        -- Snap to the starting box size to prevent jank.
         boxW = 0
         boxH = 0
     end
 
     -- Clear any attacks that might be in progress.
     clearAttacks()
+    
+    if soulMode ~= nil and soulMode.onBoxStartOpen ~= nil then
+        soulMode.onBoxStartOpen(self)
+    end
 end
 
 function closeBox()
@@ -136,12 +157,22 @@ function closeBox()
         isBoxOpening = false
         isBoxClosing = true
 
-        boxW = settings.boxWidth
-        boxH = settings.boxHeight
+        -- Snap to the target box size to prevent jank.
+        boxW = targetBoxWidth
+        boxH = targetBoxHeight
     end
 
     -- Clear any attacks that might be in progress.
     clearAttacks()
+
+    if soulMode ~= nil and soulMode.onBoxStartClose ~= nil then
+        soulMode.onBoxStartClose(self)
+    end
+end
+
+function setTargetBoxSize(width, height)
+    targetBoxWidth = width
+    targetBoxHeight = height
 end
 
 function clearAttacks()
@@ -173,7 +204,15 @@ function setSoulMode(modeName, forceColor)
 
     debugPrint("UTBS: Setting soul mode to '" .. mode.getName() .. "'")
 
+    if soulMode ~= nil and soulMode.onSwitchFromMode ~= nil then
+        soulMode.onSwitchFromMode(self)
+    end
+
     soulMode = mode
+
+    if soulMode.onSwitchToMode ~= nil then  
+        soulMode.onSwitchToMode(self)
+    end
 
     if forceColor then
         -- TODO: Implement this.
@@ -189,26 +228,59 @@ function setSoulColor(colorName)
     soulColor = settings.soulColors[colorName]
 end
 
-function registerPlugin(name, plugin)
-    if name == nil then
-        debugPrint("UTBS: Cannot register plugin because no name was provided.")
+function flashSoulColor(params)
+    -- Toggles the color between the current color and `targetColor` for `duration` seconds, `frequency` times per second.
+    local targetColor = params['taretColor'] or settings.soulColors['white']
+    local targetAlpha = params['targetAlpha'] or 1.0
+    local duration = params['duration'] or 0.5
+    local frequency = params['frequency'] or 10
+
+    soulFlashParams = {
+        targetColor = targetColor,
+        targetAlpha = targetAlpha,
+        duration = duration,
+        frequency = frequency
+    }
+end
+
+function registerPlugin(path)
+    if path == nil then
+        debugPrint("UTBS: Cannot register plugin because no file was provided.")
         return
     end
+
+    local plugin = require(path)
+
     if plugin == nil then
-        debugPrint("UTBS: Cannot register plugin '" .. name .. "' because no handler was provided.")
+        debugPrint("UTBS: Cannot register plugin because file '" .. path .. "' could not be loaded.")
         return
     end
-    if pluginRegistry[name] ~= nil then
-        debugPrint("UTBS: Cannot register plugin '" .. name .. "' because it already exists.")
+
+    if plugin.getPluginInfo == nil then
+        debugPrint("UTBS: Could not call plugin(" .. path .. ").getPluginInfo(), does the function exist?")
         return
     end
-    pluginRegistry[name] = plugin
-    -- if pluginRegistry[name].onRegister == nil then
-    --     debugPrint("UTBS: Could not call plugin["..name.."].onRegister, does the function exist?")
-    --     return
-    -- else
-    --     -- pluginRegistry[name].onRegister(self)
-    -- end
+
+    local info = plugin.getPluginInfo()
+
+    if info == nil or info['name'] == nil or info['version'] == nil then
+        debugPrint("UTBS: Could not call plugin("..path..").getPluginInfo(), does the function return a value?")
+        return
+    end
+
+    debugPrint("UTBS: Registering plugin '" .. info['name'] .. "' version " .. info['version'])
+
+    local pluginName = info['name']
+
+    -- Register
+    pluginRegistry[pluginName] = plugin
+
+    -- Post-registration
+    if pluginRegistry[pluginName].onRegister ~= nil then
+        debugPrint("UTBS: Calling plugin[" .. pluginName .. "].onRegister()...")
+        pluginRegistry[pluginName].onRegister(self)
+        debugPrint("UTBS: Done calling onRegister().")
+    end
 end
 
 function registerSoulMode(name, script)
@@ -257,8 +329,9 @@ function onUpdatePost(elapsed)
 
     if isBoxBuilt then
         handleUpdate_BoxOpenClose(elapsed)
-        handleUpdate_Soul(elapsed)
-
+        if isBoxOpen then
+            handleUpdate_Soul(elapsed)
+        end
     end
 end
 
@@ -325,18 +398,17 @@ function handleUpdate_BoxOpenClose(elapsed)
     local boxA = getProperty('utbsBattleBox.alpha')
 
     if isBoxOpening then
-        local deltaX = (settings.boxX - boxX) / elapsed * settings.boxOpenSpeed
-        local deltaY = (settings.boxY - boxY) / elapsed * settings.boxOpenSpeed
-        local deltaWidth = (settings.boxWidth - boxW) / elapsed * settings.boxOpenSpeed
-        local deltaHeight = (settings.boxHeight - boxH) / elapsed * settings.boxOpenSpeed
-        local deltaAlpha = (1.0 - boxA) / elapsed * settings.boxOpenSpeed
+        local deltaX = (settings.boxX - boxX) / elapsed * settings.boxOpenSpeed * boxRelativeOpenSpeed
+        local deltaY = (settings.boxY - boxY) / elapsed * settings.boxOpenSpeed * boxRelativeOpenSpeed
+        local deltaWidth = (targetBoxWidth - boxW) / elapsed * settings.boxOpenSpeed * boxRelativeOpenSpeed
+        local deltaHeight = (targetBoxHeight - boxH) / elapsed * settings.boxOpenSpeed * boxRelativeOpenSpeed
+        local deltaAlpha = (1.0 - boxA) / elapsed * settings.boxOpenSpeed * boxRelativeOpenSpeed
         
         boxX = boxX + deltaX
         boxY = boxY + deltaY
         boxW = boxW + deltaWidth
         boxH = boxH + deltaHeight
         boxA = boxA + deltaAlpha
-        -- debugPrint("deltaWidth: " .. deltaWidth .. ", deltaHeight: " .. deltaHeight .. ", boxW: " .. boxW .. ", boxH: " .. boxH .. ", elapsed: " .. elapsed)
     elseif isBoxClosing then
         local deltaX = (settings.boxX - boxX) / elapsed * settings.boxCloseSpeed
         local deltaY = (settings.boxY - boxY) / elapsed * settings.boxCloseSpeed
@@ -360,8 +432,8 @@ function handleUpdate_BoxOpenClose(elapsed)
     -- Round if we are very close to the target value.
     if (math.ceil(boxX) == settings.boxX or math.floor(boxX) == settings.boxX) then boxX = settings.boxX end
     if (math.ceil(boxY) == settings.boxY or math.floor(boxY) == settings.boxY) then boxY = settings.boxY end
-    if (isBoxOpening and (math.ceil(boxW) == settings.boxWidth or math.floor(boxW) == settings.boxWidth)) then boxW = settings.boxWidth end
-    if (isBoxOpening and (math.ceil(boxH) == settings.boxHeight or math.floor(boxH) == settings.boxHeight)) then boxH = settings.boxHeight end
+    if (isBoxOpening and (math.ceil(boxW) == targetBoxWidth or math.floor(boxW) == targetBoxWidth)) then boxW = targetBoxWidth end
+    if (isBoxOpening and (math.ceil(boxH) == targetBoxHeight or math.floor(boxH) == targetBoxHeight)) then boxH = targetBoxHeight end
     if (isBoxClosing and math.floor(boxW) == 0) then boxW = 0 end
     if (isBoxClosing and math.floor(boxH) == 0) then boxH = 0 end
 
@@ -385,19 +457,32 @@ function handleUpdate_BoxOpenClose(elapsed)
     boxTopBound = -boxH / 2 + settings.boxBorderWidth
     boxBottomBound = boxH / 2 - settings.boxBorderWidth
 
-    if (isBoxOpening and boxW >= settings.boxWidth) then
+    if (isBoxOpening and boxW >= targetBoxWidth) then
         isBoxOpen = true
         isBoxOpening = false
         isBoxClosing = false
+
+        if soulMode ~= nil and soulMode.onBoxOpen ~= nil then
+            soulMode.onBoxOpen(self)
+        end
     end
     if (isBoxClosing and boxW <= 0) then
         isBoxOpen = false
         isBoxOpening = false
         isBoxClosing = false
+
+        if soulMode ~= nil and soulMode.onBoxClose ~= nil then
+            soulMode.onBoxClose(self)
+        end
     end
 end
 
 function handleUpdate_Soul(elapsed)
+    if soulMode == nil then
+        debugPrint("UTBS: No soul mode has been set.")
+        return
+    end
+
     -- Soul state
     if isBoxOpen then
         isSoulInvincible = false
@@ -408,9 +493,31 @@ function handleUpdate_Soul(elapsed)
     end
 
     -- Soul color
-    setProperty('utbsSoul.color', soulColor)
-    local targetAlpha = getProperty('utbsBattleBox.alpha')
-    setProperty('utbsSoul.alpha', targetAlpha)
+    if soulFlashParams ~= nil then
+        soulFlashTimer = soulFlashTimer + elapsed
+
+        if soulFlashTimer >= soulFlashParams['duration'] then
+            soulFlashParams = nil
+            soulFlashTimer = 0.0
+        else
+            local frequency = soulFlashParams['frequency']
+            local targetColor = soulFlashParams['targetColor']
+            local targetAlpha = soulFlashParams['targetAlpha']
+            local baseAlpha = getProperty('utbsBattleBox.alpha')
+            
+            local useTargetColor = math.floor(frequency * soulFlashTimer) % 2 == 0
+
+            local finalColor = useTargetColor and targetColor or soulColor
+            local finalAlpha = useTargetColor and targetAlpha or baseAlpha
+
+            setProperty('utbsSoul.color', finalColor)
+            setProperty('utbsSoul.alpha', finalAlpha)
+        end
+    else
+        setProperty('utbsSoul.color', soulColor)
+        local targetAlpha = getProperty('utbsBattleBox.alpha')
+        setProperty('utbsSoul.alpha', targetAlpha)
+    end
 
     -- Soul controls
     left, down, up, right, action = accessControls()
@@ -418,24 +525,48 @@ function handleUpdate_Soul(elapsed)
     soulMode.onSoulInput(self, elapsed, left, down, up, right, action)
 
     -- Constrain soul position to bounds.
-    if soulXPos < boxLeftBound then 
+    if soulXPos <= boxLeftBound then 
         soulXPos = boxLeftBound
+        isSoulTouchingLeft = true
+    else
+        isSoulTouchingLeft = false
     end
-    if soulXPos > boxRightBound then 
+    if soulXPos >= boxRightBound then 
         soulXPos = boxRightBound
+        isSoulTouchingRight = true
+    else
+        isSoulTouchingRight = false
     end
-    if soulYPos < boxTopBound then 
+    if soulYPos <= boxTopBound then 
         soulYPos = boxTopBound
+        isSoulTouchingTop = true
+    else
+        isSoulTouchingTop = false
     end
-    if soulYPos > boxBottomBound then 
+    if soulYPos >= boxBottomBound then 
         soulYPos = boxBottomBound
+        isSoulTouchingBottom = true
+    else
+        isSoulTouchingBottom = false
     end
 
     -- Use the newly set soulXPos and soulYPos to update the soul's position.
     local boxX = getProperty('utbsBattleBox.x')
     local boxY = getProperty('utbsBattleBox.y')
-    setProperty("utbsSoul.x", soulXPos + boxX)
-    setProperty("utbsSoul.y", soulYPos + boxY)
+
+    local absSoulXPos = soulXPos + boxX
+    local absSoulYPos = soulYPos + boxY
+
+    if botPlay and settings.soulDisabledInBotPlay then
+        absSoulXPos = -5000
+        absSoulYPos = -5000
+    end
+
+    setProperty("utbsSoul.x", absSoulXPos)
+    setProperty("utbsSoul.y", absSoulYPos)
+    setProperty("utbsSoul.angle", soulAngle)
+
+    soulMode.onSoulUpdate(self, elapsed, absSoulXPos, absSoulYPos)
 end
 
 function accessControls()
@@ -474,6 +605,20 @@ function handleUpdate_Score()
     setProperty("scoreTxt.text", text, false)
 end
 
+function setSoulPosition(targetX, targetY)
+    local xDiff = targetX - soulXPos
+    local yDiff = targetY - soulYPos
+
+    if xDiff > settings.soulMoveThreshold or yDiff > settings.soulMoveThreshold then
+        isSoulMoving = true
+    else
+        isSoulMoving = false
+    end
+
+    soulXPos = targetX;
+    soulYPos = targetY;
+end
+
 function buildState()
     -- Return a table of functions we can use to manipulate the battle system from elsewhere.
     return {
@@ -492,6 +637,7 @@ function buildState()
         clearAttacks = clearAttacks,
         setSoulMode = setSoulMode,
         setSoulColor = setSoulColor,
+        flashSoulColor = flashSoulColor,
 
         -- Getter and setter functions
         getSettings = function() return settings end,
@@ -503,7 +649,17 @@ function buildState()
         setSoulIsInvincible = function(isInvincible) isSoulInvincible = isInvincible end,
 
         getSoulPosition = function() return soulXPos, soulYPos end,
-        setSoulPosition = function(x, y) soulXPos = x soulYPos = y end,
+        setSoulPosition = setSoulPosition,
+        
+        getSoulAngle = function() return soulAngle end,
+        setSoulAngle = function(angle) soulAngle = angle end,
+
+        getAbsSoulPosition = function() return (soulXPos + boxX), (soulYPos + boxY) end,
+        getSoulIsMoving = function() return isSoulMoving end,
+        getSoulTouchingTop = function() return isSoulTouchingTop end,
+        getSoulTouchingBottom = function() return isSoulTouchingBottom end,
+        getSoulTouchingLeft = function() return isSoulTouchingLeft end,
+        getSoulTouchingRight = function() return isSoulTouchingRight end,
     }
 end
 

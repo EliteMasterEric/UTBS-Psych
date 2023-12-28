@@ -1,0 +1,7 @@
+{
+	"name": "UTBS - Sans",
+	"description": "Sans battle mechanics for UTBS.",
+	"restart": false,
+	"runsGlobally": true,
+	"color": [0, 0, 0]
+}

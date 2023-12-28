@@ -1,0 +1,3 @@
+Tells the Undertale battle system to set the mode of the soul, which affects its gameplay.
+Value 1 - The mode to switch to, such as 'default' or 'gravity'
+Value 2 - Whether to switch the color too. 'true' is default and recommended.

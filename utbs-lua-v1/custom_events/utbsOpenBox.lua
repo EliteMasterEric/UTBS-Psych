@@ -6,10 +6,12 @@
 --- * Custom event which tells the Undertale battle system to open the battle box.
 
 -- Event notes hooks
-function onEvent(name)
+function onEvent(name, speedStr)
     if name ~= "utbsOpenBox" then
         return
     end
 
-    callScript("mods/utbs-lua-v1/scripts/main", "openBox")
+    local speedValue = tonumber(speedStr) or 1.0
+
+    callScript("mods/utbs-lua-v1/scripts/main", "openBox", {speedValue})
 end

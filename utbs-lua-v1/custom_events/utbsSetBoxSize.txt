@@ -1,0 +1,3 @@
+Tells the Undertale battle system to grow or shrink the battle box.
+Value 1: Target width for the battle box.
+Value 2: Target height for the battle box.

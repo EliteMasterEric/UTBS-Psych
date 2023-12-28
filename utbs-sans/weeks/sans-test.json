@@ -1,0 +1,30 @@
+{
+	"storyName": "Megalomaniac",
+	"hideFreeplay": false,
+	"weekBackground": "",
+	"freeplayColor": [
+		168,
+		168,
+		168
+	],
+	"weekBefore": "tutorial",
+	"startUnlocked": true,
+	"hideStoryMode": false,
+	"weekCharacters": [
+		"dad",
+		"bf",
+		"gf"
+	],
+	"songs": [
+		[
+			"sans-test",
+			"sans",
+			[
+				168,
+				168,
+				168
+			]
+		]
+	],
+	"weekName": "sans-test"
+}

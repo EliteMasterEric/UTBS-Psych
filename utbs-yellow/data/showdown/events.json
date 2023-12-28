@@ -1,0 +1,22 @@
+{
+	"song": {
+		"arrowSkin": null,
+		"bpm": 180,
+		"events": [
+			[ 0, [ [ "utbsStartBattle", "", "" ] ] ],
+			[ 2000, [ [ "utbsOpenBox", "0.25", "" ] ] ],
+			[ 7000, [ [ "utbsSoulMode", "lasso", "true" ] ] ],
+			[ 12000, [ [ "utbsCloseBox", "", "" ] ] ]
+		],
+		"needsVoices": false,
+		"notes": [],
+		"player1": "bf",
+		"player2": "dad",
+		"player3": "",
+		"song": "Showdown",
+		"speed": 2,
+		"splashSkin": null,
+		"stage": "stage",
+		"validScore": false
+	}
+}

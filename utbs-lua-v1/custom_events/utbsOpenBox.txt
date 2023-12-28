@@ -1,0 +1,2 @@
+Tells the Undertale battle system to open the battle box.
+Value 1: Relative speed that the box opens, defaults to 1.0.

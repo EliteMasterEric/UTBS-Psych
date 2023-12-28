@@ -2,44 +2,97 @@
 -- UNDERTALE BATTLE SYSTEM
 -- =======================
 --
--- scripts/modes/default.lua
--- * Script handling the default soul mode.
+-- scripts/modes/lasso.lua
+-- * Script handling the Lasso soul mode.
+-- * Display a lasso around the soul, and restrict its movement.
+
+local lassoRadius = 100;
+
+local lassoSpriteXPad = 0;
+local lassoSpriteYPad = 6;
+
+local lassoSoundDelay = 1.5;
+local lassoSoundTimer = 0;
+local lassoSoundDistanceThreshold = 1.5;
+
+local centerPointX = 0;
+local centerPointY = 0;
 
 function getName()
-    return "Default";
+    return "Lasso";
 end
 
 function getColorName()
-    return "red";
+    return "yellow";
 end
 
 function onRegister(self)
-    -- Called when the soul mode is registered.
-    debugPrint("UTBS: Registered soul mode 'default'!");
+    debugPrint("UTBS: Registered soul mode 'lasso'!");
 end
 
 function onSwitchToMode(self)
     -- Called when the soul mode is switched to this mode.
+    self.flashSoulColor({
+        duration = 0.5,
+        frequency = 10,
+    })
+
+    showLassoSprite()
+
+    playLassoSound()
 end
 
 function onSwitchFromMode(self)
     -- Called when the soul mode is switched from this mode.
+    hideLassoSprite()
 end
 
 function onBoxStartOpen(self)
     -- Called when the box starts to open while this mode is active.
 end
 
-function onBoxStartClose(self)
-    -- Called when the box starts to close while this mode is active.
-end
-
 function onBoxOpen(self)
     -- Called when the box is opened while this mode is active.
+    showLassoSprite()
+end
+
+function onBoxStartClose(self)
+    -- Called when the box starts to close while this mode is active.
+    hideLassoSprite()
 end
 
 function onBoxClose(self)
     -- Called when the box is closed while this mode is active.
+end
+
+function showLassoSprite()
+    if not luaSpriteExists("utbsYellowLasso") then
+        makeLuaSprite('utbsYellowLasso', 'utbs/modes/spr_battle_enemy_starlo_soul_0', 100, 100)
+        setProperty('utbsYellowLasso.offset.x', 8)
+        setProperty('utbsYellowLasso.offset.y', 8)
+        setProperty('utbsYellowLasso.scale.x', 2)
+        setProperty('utbsYellowLasso.scale.y', 2)
+        setProperty('utbsYellowLasso.alpha', 1)
+        setProperty('utbsYellowLasso.antialiasing', false)
+        setObjectCamera('utbsYellowLasso', 'camHUD')
+        
+        addLuaSprite('utbsYellowLasso', false)
+    else
+        setProperty('utbsYellowLasso.alpha', 1)
+    end
+end
+
+function playLassoSound()
+    playSound('utbs/modes/snd_starlo_rope_strain')
+    lassoSoundTimer = lassoSoundDelay
+end
+
+function hideLassoSprite()
+    if luaSpriteExists("utbsYellowLasso") then
+        setProperty('utbsYellowLasso.alpha', 0)
+    else
+        debugPrint("UTBS: Could not hide sprite, does not exist!")
+    end
 end
 
 local left = false;
@@ -148,15 +201,48 @@ function onSoulInput(self, elapsed, jpLeft, jpDown, jpUp, jpRight, jpAction)
         end
     end
 
-    local xDiff = xDir * settings.soulSpeed * elapsed;
-    local yDiff = yDir * settings.soulSpeed * elapsed;
-
+    
     local soulX, soulY = self.getSoulPosition();
+    local distanceToCenter = getDistanceToCenter(soulX, soulY);
+    
+    local isXAwayFromCenter = (soulX * xDir) > 0; -- soulX and xDir have the same sign.
+    local isYAwayFromCenter = (soulY * yDir) > 0; -- soulY and yDir have the same sign.
+
+    local proportionalSpeed = (lassoRadius - distanceToCenter) / lassoRadius;
+    local xProportionalSpeed = isXAwayFromCenter and proportionalSpeed or 1;
+    local yProportionalSpeed = isYAwayFromCenter and proportionalSpeed or 1;
+
+    -- debugPrint("UTBS: Lasso input : " .. distanceToCenter .. " : " .. proportionalSpeed);
+
+    local xDiff = xDir * settings.soulSpeed * elapsed * xProportionalSpeed;
+    local yDiff = yDir * settings.soulSpeed * elapsed * yProportionalSpeed;
+    local diffDistance = math.sqrt(xDiff * xDiff + yDiff * yDiff);
+
+    -- Handle lasso strain sound while moving.
+    if lassoSoundTimer > 0 then
+        lassoSoundTimer = lassoSoundTimer - elapsed
+    else
+        if diffDistance > lassoSoundDistanceThreshold then
+            playLassoSound()
+        end
+    end
+
     self.setSoulPosition(soulX + xDiff, soulY + yDiff);
+end
+
+function getDistanceToCenter(posX, posY)
+    local xDiff = posX - centerPointX;
+    local yDiff = posY - centerPointY;
+
+    return math.sqrt(xDiff * xDiff + yDiff * yDiff);
 end
 
 function onSoulUpdate(self, elapsed, absSoulXPos, absSoulYPos)
     -- Perform an update after movement is applied.
+    if luaSpriteExists("utbsYellowLasso") then
+        setProperty('utbsYellowLasso.x', absSoulXPos + lassoSpriteXPad)
+        setProperty('utbsYellowLasso.y', absSoulYPos + lassoSpriteYPad)
+    end
 end
 
 return {
@@ -166,7 +252,9 @@ return {
     onRegister = onRegister,
     onSwitchFromMode = onSwitchFromMode,
     onSwitchToMode = onSwitchToMode,
+    onBoxStartOpen = onBoxStartOpen,
     onBoxOpen = onBoxOpen,
+    onBoxStartClose = onBoxStartClose,
     onBoxClose = onBoxClose,
 
     onSoulInput = onSoulInput,

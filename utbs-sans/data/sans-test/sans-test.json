@@ -1,0 +1,14 @@
+{
+	"song": {
+		"player1": "bf",
+		"notes": [],
+		"player2": "dad",
+		"player3": "",
+		"song": "Sans Test",
+		"stage": "stage",
+		"needsVoices": true,
+		"validScore": true,
+		"bpm": 176,
+		"speed": 2.5
+	}
+}

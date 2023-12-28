@@ -1,0 +1,2 @@
+Tells the Undertale battle system to initialize any necessary components.
+Call this event immediately as the song starts (even if the battle only starts later).

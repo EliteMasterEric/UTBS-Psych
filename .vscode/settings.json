@@ -1,0 +1,37 @@
+{
+    "Lua.diagnostics.disable": [
+        "lowercase-global"
+    ],
+    "Lua.diagnostics.globals": [
+        "getColorFromHex",
+        "setProperty",
+        "getProperty",
+        "getPropertyFromClass",
+        "debugPrint",
+        "callScript",
+        "makeLuaSprite",
+        "addLuaSprite",
+        "botPlay",
+        "setObjectCamera",
+        "luaSpriteExists",
+        "stopSound",
+        "difficulty",
+        "instakillOnMiss",
+        "healthLossMult",
+        "playSound",
+        "triggerEvent",
+        "removeLuaSprite",
+        "setTextAlignment",
+        "makeLuaText",
+        "downscroll",
+        "addLuaText",
+        "middlescroll",
+        "practice",
+        "setTextString",
+        "setTextColor",
+        "getPropertyFromGroup",
+        "stepCrochet",
+        "curStep",
+        "noteOffset"
+    ]
+}
