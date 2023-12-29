@@ -55,6 +55,11 @@ return {
     soulSpeed = 4.2 * 60,
     soulMoveThreshold = 0.1,
 
+    -- Invulnerability duration after getting hit.
+    soulInvulnDuration = 0.5,
+
+    damageSoundDelay = 1.0,
+
     -- True: Pressing right while holding left will move right, and releasing right will move left again.
     -- False: Pressing right while holding left will stop the soul.
     nullCancelation = false,

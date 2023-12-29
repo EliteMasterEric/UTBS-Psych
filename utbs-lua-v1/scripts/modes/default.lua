@@ -159,6 +159,11 @@ function onSoulUpdate(self, elapsed, absSoulXPos, absSoulYPos)
     -- Perform an update after movement is applied.
 end
 
+function onPlayerHit(self, damage)
+    -- Called when the player is hit by a bullet.
+    return damage
+end
+
 return {
     getName = getName,
     getColorName = getColorName,
@@ -170,5 +175,6 @@ return {
     onBoxClose = onBoxClose,
 
     onSoulInput = onSoulInput,
-    onSoulUpdate = onSoulUpdate
+    onSoulUpdate = onSoulUpdate,
+    onPlayerHit = onPlayerHit,
 }

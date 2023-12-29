@@ -6,10 +6,10 @@
 --- * Custom event which tells the Undertale battle system to use an attack.
 
 -- Event notes hooks
-function onEvent(name)
-    if name ~= "utbsCloseBox" then
+function onEvent(eventName, attackName, data)
+    if eventName ~= "utbsUseAttack" then
         return
     end
 
-    callScript("mods/utbs-lua-v1/scripts/main", "useAttack")
+    callScript("mods/utbs-lua-v1/scripts/main", "useAttack", {attackName, data})
 end

@@ -91,7 +91,7 @@ function hideLassoSprite()
     if luaSpriteExists("utbsYellowLasso") then
         setProperty('utbsYellowLasso.alpha', 0)
     else
-        debugPrint("UTBS: Could not hide sprite, does not exist!")
+        debugPrint("UTBS: WARNING Could not hide sprite, does not exist!")
     end
 end
 

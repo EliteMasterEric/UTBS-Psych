@@ -7,7 +7,7 @@
 
 -- Event notes hooks
 function onEvent(name, widthStr, heightStr)
-    if name ~= "utbsSetTargetBoxSize" then
+    if name ~= "utbsSetBoxSize" then
         return
     end
 

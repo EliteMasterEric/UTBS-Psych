@@ -33,5 +33,6 @@
         "stepCrochet",
         "curStep",
         "noteOffset"
-    ]
+    ],
+    "Lua.runtime.version": "Lua 5.1"
 }

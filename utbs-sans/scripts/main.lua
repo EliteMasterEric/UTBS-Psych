@@ -18,6 +18,8 @@ function onRegister(state)
     debugPrint("UTBS: Loaded Sans Attack plugin.")
 
     state.registerSoulMode('gravity', require('mods/utbs-sans/scripts/modes/gravity'))
+
+    state.registerAttack('singleBone', require('mods/utbs-sans/scripts/attacks/singleBone'))
 end
 
 function buildState()

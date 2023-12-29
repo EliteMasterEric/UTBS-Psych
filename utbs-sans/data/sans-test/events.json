@@ -4,8 +4,14 @@
 		"bpm": 180,
 		"events": [
 			[ 0, [ [ "utbsStartBattle", "", "" ] ] ],
-			[ 2000, [ [ "utbsOpenBox", "5.0", "" ] ] ],
+			[ 2000, [ [ "utbsOpenBox", "1.0", "" ] ] ],
 			[ 3000, [ [ "utbsSoulMode", "gravity", "true" ] ] ],
+			[ 4000, [ [ "utbsSetBoxSize", "200", "200" ] ] ],
+			
+			[ 6000, [ [ "utbsUseAttack", "singleBone" ] ] ],
+
+			[ 8000, [ [ "utbsUseAttack", "singleBone", "tilted" ] ] ],
+
 			[ 12000, [ [ "utbsCloseBox", "", "" ] ] ]
 		],
 		"needsVoices": false,
