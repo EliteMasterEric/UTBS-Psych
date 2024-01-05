@@ -112,7 +112,7 @@ function initializeBattleSystem()
 
     -- Register built-in soul modes.
     registerSoulMode('default', require('mods/utbs-lua-v1/scripts/modes/default'))
-    
+
     -- Set soul mode and color.
     setSoulMode('default')
 end
@@ -148,7 +148,7 @@ function openBox(speed)
 
     -- Clear any attacks that might be in progress.
     clearAttacks()
-    
+
     if soulMode ~= nil and soulMode.onBoxStartOpen ~= nil then
         soulMode.onBoxStartOpen(self)
     end
@@ -202,7 +202,7 @@ function useAttack(name, data)
         debugPrint("UTBS: WARNING Cannot use attack '" .. name .. "' because it does not exist. Make sure to register it!")
         return
     end
-    
+
     debugPrint("UTBS: Using attack '" .. name .. "' with data: {" .. data .. "}")
 
     attack.spawnAttack(self, data)
@@ -295,7 +295,7 @@ function setSoulMode(modeName, forceColor)
 
     soulMode = mode
 
-    if soulMode.onSwitchToMode ~= nil then  
+    if soulMode.onSwitchToMode ~= nil then
         soulMode.onSwitchToMode(self)
     end
 
@@ -493,7 +493,7 @@ function handleUpdate_BoxOpenClose(elapsed)
         local deltaWidth = (targetBoxWidth - boxW) / elapsed * settings.boxOpenSpeed * boxRelativeOpenSpeed
         local deltaHeight = (targetBoxHeight - boxH) / elapsed * settings.boxOpenSpeed * boxRelativeOpenSpeed
         local deltaAlpha = (1.0 - boxA) / elapsed * settings.boxOpenSpeed * boxRelativeOpenSpeed
-        
+
         boxX = boxX + deltaX
         boxY = boxY + deltaY
         boxW = boxW + deltaWidth
@@ -505,7 +505,7 @@ function handleUpdate_BoxOpenClose(elapsed)
         local deltaWidth = (0 - boxW) / elapsed * settings.boxCloseSpeed
         local deltaHeight = (0 - boxH) / elapsed * settings.boxCloseSpeed
         local deltaAlpha = (0 - boxA) / elapsed * settings.boxCloseSpeed
-        
+
         boxX = boxX + deltaX
         boxY = boxY + deltaY
         boxW = boxW + deltaWidth
@@ -517,7 +517,7 @@ function handleUpdate_BoxOpenClose(elapsed)
         local deltaWidth = (targetBoxWidth - boxW) / elapsed * settings.boxOpenSpeed * boxRelativeOpenSpeed
         local deltaHeight = (targetBoxHeight - boxH) / elapsed * settings.boxOpenSpeed * boxRelativeOpenSpeed
         local deltaAlpha = (1.0 - boxA) / elapsed * settings.boxOpenSpeed * boxRelativeOpenSpeed
-        
+
         boxX = boxX + deltaX
         boxY = boxY + deltaY
         boxW = boxW + deltaWidth
@@ -545,7 +545,7 @@ function handleUpdate_BoxOpenClose(elapsed)
     setProperty('utbsBattleBox.x', boxX)
 	setProperty('utbsBattleBox.y', boxY)
 	setProperty('utbsBattleBox.alpha', boxA)
-    
+
     -- Ensure the border is visible.
 	setProperty('utbsBattleBoxBorder.scale.x', (boxW + settings.boxBorderWidth) / settings.boxImageSize)
 	setProperty('utbsBattleBoxBorder.scale.y', (boxH + settings.boxBorderWidth) / settings.boxImageSize)
@@ -621,7 +621,7 @@ function handleUpdate_Soul(elapsed)
             local targetColor = soulFlashParams['targetColor']
             local targetAlpha = soulFlashParams['targetAlpha']
             local baseAlpha = getProperty('utbsBattleBox.alpha')
-            
+
             local useTargetColor = math.floor(frequency * soulFlashTimer) % 2 == 0
 
             local finalColor = useTargetColor and targetColor or soulColor
@@ -634,7 +634,7 @@ function handleUpdate_Soul(elapsed)
         -- Flash white while invulnerable due to taking damage.
         local frequency = 20
         local targetColor = settings.soulColors['white']
-        
+
         local useTargetColor = math.floor(frequency * soulInvulnTimer) % 2 == 0
 
         local finalColor = useTargetColor and targetColor or soulColor
@@ -653,25 +653,25 @@ function handleUpdate_Soul(elapsed)
     soulMode.onSoulInput(self, elapsed, left, down, up, right, action)
 
     -- Constrain soul position to bounds.
-    if soulXPos <= boxLeftBound then 
+    if soulXPos <= boxLeftBound then
         soulXPos = boxLeftBound
         isSoulTouchingLeft = true
     else
         isSoulTouchingLeft = false
     end
-    if soulXPos >= boxRightBound then 
+    if soulXPos >= boxRightBound then
         soulXPos = boxRightBound
         isSoulTouchingRight = true
     else
         isSoulTouchingRight = false
     end
-    if soulYPos <= boxTopBound then 
+    if soulYPos <= boxTopBound then
         soulYPos = boxTopBound
         isSoulTouchingTop = true
     else
         isSoulTouchingTop = false
     end
-    if soulYPos >= boxBottomBound then 
+    if soulYPos >= boxBottomBound then
         soulYPos = boxBottomBound
         isSoulTouchingBottom = true
     else
@@ -707,7 +707,7 @@ function handleUpdate_Attacks(elapsed)
             bullet.x = bullet.x + bullet.velocityX * elapsed
             bullet.y = bullet.y + bullet.velocityY * elapsed
             bullet.angle = bullet.angle + bullet.angularVelocity * elapsed
-            
+
             local fadeAlpha = 1.0
 
             if bullet.fadeInDuration > 0 then
@@ -813,31 +813,32 @@ function handleUpdate_Score(wasTextReset)
 
     -- Add the damage
     text = baseScoreText .. " Times Hit: " .. timesHit .. "\n"
-    
+
     setProperty("scoreTxt.text", text, false)
 end
 
+function getControl(keyboardControlOptions, gamepadControlOption, useGamepad)
+    -- support two controls for the action input
+    if #keyboardControlOptions == 2 then
+        return getPropertyFromClass('flixel.FlxG', 'keys.pressed.' .. keyboardControlOptions[1]) or getPropertyFromClass('flixel.FlxG', 'keys.pressed.' .. keyboardControlOptions[2]) or
+        (useGamepad and (getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.DPAD_' .. gamepadControlOption) or getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.LEFT_STICK_DIGITAL_' .. gamepadControlOption)))
+    end
+
+    return getPropertyFromClass('flixel.FlxG', 'keys.pressed.' .. keyboardControlOptions[1]) or getPropertyFromClass('flixel.FlxG', 'keys.pressed.' .. keyboardControlOptions[2]) or getPropertyFromClass('flixel.FlxG', 'keys.pressed.' .. keyboardControlOptions[3]) or
+    (useGamepad and (getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.DPAD_' .. gamepadControlOption) or getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.LEFT_STICK_DIGITAL_' .. gamepadControlOption)))
+end
+
 function accessControls()
-    -- TODO: Is there a nicer method?
     local useGamepad = false
     if (getPropertyFromClass('flixel.FlxG', 'gamepads.numActiveGamepads') > 0) then
         useGamepad = true
     end
 
-    local right = getPropertyFromClass('flixel.FlxG', 'keys.pressed.RIGHT') or getPropertyFromClass('flixel.FlxG', 'keys.pressed.D') or getPropertyFromClass('flixel.FlxG', 'keys.pressed.L') or
-    (useGamepad and (getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.DPAD_RIGHT') or getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.LEFT_STICK_DIGITAL_RIGHT')))
-    
-    local left = getPropertyFromClass('flixel.FlxG', 'keys.pressed.LEFT') or getPropertyFromClass('flixel.FlxG', 'keys.pressed.A') or getPropertyFromClass('flixel.FlxG', 'keys.pressed.J') or
-    (useGamepad and (getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.DPAD_LEFT') or getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.LEFT_STICK_DIGITAL_LEFT')))
-    
-    local up = getPropertyFromClass('flixel.FlxG', 'keys.pressed.UP') or getPropertyFromClass('flixel.FlxG', 'keys.pressed.W') or getPropertyFromClass('flixel.FlxG', 'keys.pressed.I') or
-    (useGamepad and (getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.DPAD_UP') or getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.LEFT_STICK_DIGITAL_UP')))
-    
-    local down = getPropertyFromClass('flixel.FlxG', 'keys.pressed.DOWN') or getPropertyFromClass('flixel.FlxG', 'keys.pressed.S') or getPropertyFromClass('flixel.FlxG', 'keys.pressed.K') or
-    (useGamepad and (getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.DPAD_DOWN') or getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.LEFT_STICK_DIGITAL_DOWN')))
-
-    local action = getPropertyFromClass('flixel.FlxG', 'keys.pressed.SPACE') or getPropertyFromClass('flixel.FlxG', 'keys.pressed.Z') or
-    (useGamepad and (getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.A') or getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.A')))
+    local left = getControl({'LEFT', 'A', 'J'}, 'LEFT', useGamepad)
+    local down = getControl({'DOWN', 'S', 'K'}, 'DOWN', useGamepad)
+    local up = getControl({'UP', 'W', 'I'}, 'UP', useGamepad)
+    local right = getControl({'RIGHT', 'D', 'L'}, 'RIGHT', useGamepad)
+    local action = getControl({'SPACE', 'Z'}, 'A', useGamepad)
 
     return left, down, up, right, action
 end
@@ -852,10 +853,10 @@ function damagePlayer(damage, applyInvuln)
         damage = soulMode.onPlayerHit(self, damage)
     end
 
-    
+
     -- Deal damage to the player.
     setProperty('health', getProperty('health') - (damage / 100.0));
-    
+
     if (applyInvuln) then
         soulInvulnTimer = settings.soulInvulnDuration
 
@@ -928,7 +929,7 @@ function buildState()
 
         getSoulPosition = function() return soulXPos, soulYPos end,
         setSoulPosition = setSoulPosition,
-        
+
         getSoulAngle = function() return soulAngle end,
         setSoulAngle = function(angle) soulAngle = angle end,
 
