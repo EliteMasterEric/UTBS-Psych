@@ -807,7 +807,7 @@ function handleUpdate_Score(wasTextReset)
     if wasTextReset then
         baseScoreText = getProperty('scoreTxt.text')
         -- Trim the last 2 characters.
-        baseScoreText = string.sub(baseScoreText, 1, string.len(baseScoreText) - 2)
+        baseScoreText = string.sub(baseScoreText, 1, #baseScoreText - 2)
     end
 
     -- Add the damage
@@ -818,14 +818,22 @@ end
 
 function accessControls()
     local function getControl(keyboardControlOptions, gamepadControlOption, useGamepad)
-        -- support two controls for the action input
+        local lastActiveOne = 'gamepads.lastActive.pressed.DPAD_'
+        local lastActiveTwo = 'gamepads.lastActive.pressed.LEFT_STICK_DIGITAL_'
+        if gamepadControlOption ~= 'LEFT' and gamepadControlOption ~= 'DOWN' and gamepadControlOption ~= 'UP' and gamepadControlOption ~= 'RIGHT' then
+            -- Support for buttons
+            lastActiveOne = 'gamepads.lastActive.pressed.'
+            lastActiveTwo = 'gamepads.lastActive.pressed.'
+        end
+
+        -- Support two controls for the action input
         if #keyboardControlOptions == 2 then
             return getPropertyFromClass('flixel.FlxG', 'keys.pressed.' .. keyboardControlOptions[1]) or getPropertyFromClass('flixel.FlxG', 'keys.pressed.' .. keyboardControlOptions[2]) or
-            (useGamepad and (getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.DPAD_' .. gamepadControlOption) or getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.LEFT_STICK_DIGITAL_' .. gamepadControlOption)))
+            (useGamepad and (getPropertyFromClass('flixel.FlxG', lastActiveOne .. gamepadControlOption) or getPropertyFromClass('flixel.FlxG', lastActiveTwo .. gamepadControlOption)))
         end
 
         return getPropertyFromClass('flixel.FlxG', 'keys.pressed.' .. keyboardControlOptions[1]) or getPropertyFromClass('flixel.FlxG', 'keys.pressed.' .. keyboardControlOptions[2]) or getPropertyFromClass('flixel.FlxG', 'keys.pressed.' .. keyboardControlOptions[3]) or
-        (useGamepad and (getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.DPAD_' .. gamepadControlOption) or getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.LEFT_STICK_DIGITAL_' .. gamepadControlOption)))
+        (useGamepad and (getPropertyFromClass('flixel.FlxG', lastActiveOne .. gamepadControlOption) or getPropertyFromClass('flixel.FlxG', lastActiveTwo .. gamepadControlOption)))
     end
 
     local useGamepad = false
