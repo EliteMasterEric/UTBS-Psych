@@ -40,6 +40,9 @@ local boxH = 0.0
 local boxX = settings.boxX
 local boxY = settings.boxY
 
+-- Current alpha of the battle box
+local boxA = 0.0
+
 --
 -- SOUL STATE VARIABLES
 --
@@ -391,12 +394,12 @@ end
 --
 
 function onCreate()
-	-- Called when the Lua file is loaded.
+    -- Called when the Lua file is loaded.
     -- Some variables are not properly initialized yet.
 end
 
 function onCreatePost()
-	-- Called after the Lua file is loaded and all variables are properly initialized.
+    -- Called after the Lua file is loaded and all variables are properly initialized.
     -- NOTE: This gets called multiple times for some reason -_-
 end
 
@@ -433,7 +436,7 @@ function onUpdateScore(miss)
 end
 
 function onDestroy()
-	-- triggered when the lua file is ended (Song fade out finished)
+    -- triggered when the lua file is ended (Song fade out finished)
 end
 
 --
@@ -483,9 +486,17 @@ function handleUpdate_BoxOpenClose(elapsed)
         return
     end
 
+    local function handleBoxProperties(deltaX, deltaY, deltaWidth, deltaHeight, deltaAlpha)
+        boxX = boxX + deltaX
+        boxY = boxY + deltaY
+        boxW = boxW + deltaWidth
+        boxH = boxH + deltaHeight
+        boxA = boxH + deltaAlpha
+    end
+
     boxX = getProperty('utbsBattleBox.x')
     boxY = getProperty('utbsBattleBox.y')
-    local boxA = getProperty('utbsBattleBox.alpha')
+    boxA = getProperty('utbsBattleBox.alpha')
 
     if isBoxOpening then
         local deltaX = (settings.boxX - boxX) / elapsed * settings.boxOpenSpeed * boxRelativeOpenSpeed
@@ -494,11 +505,7 @@ function handleUpdate_BoxOpenClose(elapsed)
         local deltaHeight = (targetBoxHeight - boxH) / elapsed * settings.boxOpenSpeed * boxRelativeOpenSpeed
         local deltaAlpha = (1.0 - boxA) / elapsed * settings.boxOpenSpeed * boxRelativeOpenSpeed
 
-        boxX = boxX + deltaX
-        boxY = boxY + deltaY
-        boxW = boxW + deltaWidth
-        boxH = boxH + deltaHeight
-        boxA = boxA + deltaAlpha
+        handleBoxProperties(deltaX, deltaY, deltaWidth, deltaHeight, deltaAlpha)
     elseif isBoxClosing then
         local deltaX = (settings.boxX - boxX) / elapsed * settings.boxCloseSpeed
         local deltaY = (settings.boxY - boxY) / elapsed * settings.boxCloseSpeed
@@ -506,11 +513,7 @@ function handleUpdate_BoxOpenClose(elapsed)
         local deltaHeight = (0 - boxH) / elapsed * settings.boxCloseSpeed
         local deltaAlpha = (0 - boxA) / elapsed * settings.boxCloseSpeed
 
-        boxX = boxX + deltaX
-        boxY = boxY + deltaY
-        boxW = boxW + deltaWidth
-        boxH = boxH + deltaHeight
-        boxA = boxA + deltaAlpha
+        handleBoxProperties(deltaX, deltaY, deltaWidth, deltaHeight, deltaAlpha)
     elseif isBoxLerping then
         local deltaX = (settings.boxX - boxX) / elapsed * settings.boxOpenSpeed * boxRelativeOpenSpeed
         local deltaY = (settings.boxY - boxY) / elapsed * settings.boxOpenSpeed * boxRelativeOpenSpeed
@@ -518,11 +521,7 @@ function handleUpdate_BoxOpenClose(elapsed)
         local deltaHeight = (targetBoxHeight - boxH) / elapsed * settings.boxOpenSpeed * boxRelativeOpenSpeed
         local deltaAlpha = (1.0 - boxA) / elapsed * settings.boxOpenSpeed * boxRelativeOpenSpeed
 
-        boxX = boxX + deltaX
-        boxY = boxY + deltaY
-        boxW = boxW + deltaWidth
-        boxH = boxH + deltaHeight
-        boxA = boxA + deltaAlpha
+        handleBoxProperties(deltaX, deltaY, deltaWidth, deltaHeight, deltaAlpha)
     else
         if isBoxOpen then
             boxA = 1.0
@@ -541,17 +540,17 @@ function handleUpdate_BoxOpenClose(elapsed)
 
     -- Apply the box size before we apply the position.
     setProperty('utbsBattleBox.scale.x', boxW / settings.boxImageSize)
-	setProperty('utbsBattleBox.scale.y', boxH / settings.boxImageSize)
+    setProperty('utbsBattleBox.scale.y', boxH / settings.boxImageSize)
     setProperty('utbsBattleBox.x', boxX)
-	setProperty('utbsBattleBox.y', boxY)
-	setProperty('utbsBattleBox.alpha', boxA)
+    setProperty('utbsBattleBox.y', boxY)
+    setProperty('utbsBattleBox.alpha', boxA)
 
     -- Ensure the border is visible.
-	setProperty('utbsBattleBoxBorder.scale.x', (boxW + settings.boxBorderWidth) / settings.boxImageSize)
-	setProperty('utbsBattleBoxBorder.scale.y', (boxH + settings.boxBorderWidth) / settings.boxImageSize)
-	setProperty('utbsBattleBoxBorder.x', boxX)
-	setProperty('utbsBattleBoxBorder.y', boxY)
-	setProperty('utbsBattleBoxBorder.alpha', boxA)
+    setProperty('utbsBattleBoxBorder.scale.x', (boxW + settings.boxBorderWidth) / settings.boxImageSize)
+    setProperty('utbsBattleBoxBorder.scale.y', (boxH + settings.boxBorderWidth) / settings.boxImageSize)
+    setProperty('utbsBattleBoxBorder.x', boxX)
+    setProperty('utbsBattleBoxBorder.y', boxY)
+    setProperty('utbsBattleBoxBorder.alpha', boxA)
 
     -- Set internal bounding box to the displayed box.
     boxLeftBound = -boxW / 2 + settings.boxBorderWidth
@@ -817,18 +816,18 @@ function handleUpdate_Score(wasTextReset)
     setProperty("scoreTxt.text", text, false)
 end
 
-function getControl(keyboardControlOptions, gamepadControlOption, useGamepad)
-    -- support two controls for the action input
-    if #keyboardControlOptions == 2 then
-        return getPropertyFromClass('flixel.FlxG', 'keys.pressed.' .. keyboardControlOptions[1]) or getPropertyFromClass('flixel.FlxG', 'keys.pressed.' .. keyboardControlOptions[2]) or
+function accessControls()
+    local function getControl(keyboardControlOptions, gamepadControlOption, useGamepad)
+        -- support two controls for the action input
+        if #keyboardControlOptions == 2 then
+            return getPropertyFromClass('flixel.FlxG', 'keys.pressed.' .. keyboardControlOptions[1]) or getPropertyFromClass('flixel.FlxG', 'keys.pressed.' .. keyboardControlOptions[2]) or
+            (useGamepad and (getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.DPAD_' .. gamepadControlOption) or getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.LEFT_STICK_DIGITAL_' .. gamepadControlOption)))
+        end
+
+        return getPropertyFromClass('flixel.FlxG', 'keys.pressed.' .. keyboardControlOptions[1]) or getPropertyFromClass('flixel.FlxG', 'keys.pressed.' .. keyboardControlOptions[2]) or getPropertyFromClass('flixel.FlxG', 'keys.pressed.' .. keyboardControlOptions[3]) or
         (useGamepad and (getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.DPAD_' .. gamepadControlOption) or getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.LEFT_STICK_DIGITAL_' .. gamepadControlOption)))
     end
 
-    return getPropertyFromClass('flixel.FlxG', 'keys.pressed.' .. keyboardControlOptions[1]) or getPropertyFromClass('flixel.FlxG', 'keys.pressed.' .. keyboardControlOptions[2]) or getPropertyFromClass('flixel.FlxG', 'keys.pressed.' .. keyboardControlOptions[3]) or
-    (useGamepad and (getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.DPAD_' .. gamepadControlOption) or getPropertyFromClass('flixel.FlxG', 'gamepads.lastActive.pressed.LEFT_STICK_DIGITAL_' .. gamepadControlOption)))
-end
-
-function accessControls()
     local useGamepad = false
     if (getPropertyFromClass('flixel.FlxG', 'gamepads.numActiveGamepads') > 0) then
         useGamepad = true
